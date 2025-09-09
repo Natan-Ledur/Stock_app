@@ -1,11 +1,11 @@
 # Bibliotecas principais
 import pyodbc
 import pandas as pd
-import time
-import matplotlib.pyplot as plt  # Para gráficos
-from datetime import date
-import numpy as np
-import pickle
+# import time
+# import matplotlib.pyplot as plt  # Para gráficos, Não estou utilizando no momento
+# from datetime import date
+# import numpy as np #Para Arrays melhores, usei na versão anterior!
+import pickle # Para conversão  objeto Python.
 
 #==============================================================================================
 def criar_conexao():
