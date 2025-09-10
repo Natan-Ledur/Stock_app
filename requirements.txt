@@ -1,5 +1,5 @@
 streamlit
 pandas
 numpy
-# Adicione aqui outras dependências necessárias para seus dashboards
+# Adicione aqui outras dependências necessárias para o dashboards
 plotly
