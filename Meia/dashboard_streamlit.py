@@ -159,6 +159,17 @@ if resultado_final is not None:
     st.plotly_chart(fig2, use_container_width=True)
     st.subheader("Tabela de Cobertura de Estoque")
     st.dataframe(resultado_final[['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']])
+    # Botão de download Excel da tabela de cobertura
+    import io
+    output = io.BytesIO()
+    resultado_final[['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']].to_excel(output, index=False)
+    output.seek(0)
+    st.download_button(
+        label="Download Excel da Tabela de Cobertura",
+        data=output,
+        file_name="tabela_cobertura_estoque.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # Dashboard de consumo diário consolidado
 if lista_consumo_diario:
@@ -231,7 +242,7 @@ if lista_consumo_diario:
     fig3.update_layout(title='Consumo Diário', xaxis_title='Data', yaxis_title='Consumo', template='plotly_dark', height=500)
     st.plotly_chart(fig3, use_container_width=True)
     # Download CSV
-    if st.button('Download CSV dos dados filtrados'):
+    if st.button('Download Excel dos dados filtrados'):
         dfs = []
         for prod in produtos_selecionados:
             df_prod = df_consumo_diario[df_consumo_diario['Produto'] == prod].sort_values('Data')
@@ -241,8 +252,8 @@ if lista_consumo_diario:
             dfs.append(df_prod.assign(Produto=prod))
         df_final = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
         if not df_final.empty:
-            df_final.to_csv('dados_filtrados_dashboard.csv', index=False, sep=';')
-            st.success('Arquivo "dados_filtrados_dashboard.csv" salvo com sucesso!')
+            df_final.to_excel('dados_filtrados_dashboard.xlsx', index=False)
+            st.success('Arquivo "dados_filtrados_dashboard.xlsx" salvo com sucesso!')
         else:
             st.warning('Nenhum dado para exportar.')
 
