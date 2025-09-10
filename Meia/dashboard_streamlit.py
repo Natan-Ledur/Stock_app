@@ -141,12 +141,16 @@ if resultado_final is not None and estoque_atual_por_produto:
     resultado_final['Consumo_Medio_Diario'] = resultado_final['Consumo_Medio_Diario'].round(4)
 
 # Dashboard interativo
-st.sidebar.header("Filtros")
 if resultado_final is not None:
     produtos = resultado_final['Produto'].unique().tolist()
-    produto_selecionado = st.sidebar.selectbox("Produto", produtos)
     colunas_meses = [col for col in resultado_final.columns if col not in ['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']]
-    mes_selecionado = st.sidebar.selectbox("Mês para Top 10", colunas_meses)
+    with st.container():
+        st.markdown("### Filtros")
+        col1, col2 = st.columns(2)
+        with col1:
+            produto_selecionado = st.selectbox("Produto", produtos)
+        with col2:
+            mes_selecionado = st.selectbox("Mês para Top 10", colunas_meses)
     st.subheader(f"Evolução Mensal do Consumo Médio - {produto_selecionado}")
     dados_produto = resultado_final[resultado_final['Produto']==produto_selecionado][colunas_meses]
     # Garantir ordenação dos meses
