@@ -207,14 +207,20 @@ if lista_consumo_diario:
         df_entrada_diario = df_entrada_diario.dropna(subset=['Data'])
     st.subheader("Consumo Diário Consolidado - Gráfico Interativo")
     produtos_disp = sorted(df_consumo_diario['Produto'].unique().tolist())
-    produto1 = st.sidebar.selectbox("Produto 1 (Consumo Diário)", produtos_disp, key='prod1')
-    produto2 = st.sidebar.selectbox("Produto 2 (Consumo Diário)", ['(Nenhum)'] + produtos_disp, key='prod2')
     data_min = df_consumo_diario['Data'].min().date()
     data_max = df_consumo_diario['Data'].max().date()
-    periodo = st.sidebar.slider("Período", min_value=data_min, max_value=data_max, value=(data_min, data_max), format="%Y-%m-%d")
-    indicadores = st.sidebar.multiselect("Indicadores", ['Média Móvel 7d', 'Média Móvel 14d', 'Bollinger Bands', 'Média Móvel Personalizada', 'Tendência Linear'], default=['Média Móvel 7d'])
-    mm_custom = st.sidebar.slider("MM Personalizada (dias)", min_value=2, max_value=60, value=21)
-    so_medias = st.sidebar.checkbox("Exibir apenas médias/tendência", value=False)
+    with st.container():
+        st.markdown("### Filtros Consumo Diário")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            produto1 = st.selectbox("Produto 1 (Consumo Diário)", produtos_disp, key='prod1')
+            produto2 = st.selectbox("Produto 2 (Consumo Diário)", ['(Nenhum)'] + produtos_disp, key='prod2')
+        with col2:
+            periodo = st.slider("Período", min_value=data_min, max_value=data_max, value=(data_min, data_max), format="%Y-%m-%d")
+        with col3:
+            indicadores = st.multiselect("Indicadores", ['Média Móvel 7d', 'Média Móvel 14d', 'Bollinger Bands', 'Média Móvel Personalizada', 'Tendência Linear'], default=['Média Móvel 7d'])
+            mm_custom = st.slider("MM Personalizada (dias)", min_value=2, max_value=60, value=21)
+            so_medias = st.checkbox("Exibir apenas médias/tendência", value=False)
     produtos_selecionados = [produto1] if produto2 == '(Nenhum)' or produto2 == produto1 else [produto1, produto2]
     fig3 = go.Figure()
     for prod in produtos_selecionados:
@@ -257,8 +263,15 @@ if lista_consumo_diario:
     if df_entrada_diario is not None:
         st.subheader("Estoque Diário Acumulado - Gráfico Interativo")
         produtos_disp_entrada = sorted(list(set(df_entrada_diario['Produto'].unique()) | set(df_consumo_diario['Produto'].unique())))
-        produto1_estoque = st.sidebar.selectbox("Produto 1 (Estoque Diário)", produtos_disp_entrada, key='prod1_estoque')
-        produto2_estoque = st.sidebar.selectbox("Produto 2 (Estoque Diário)", ['(Nenhum)'] + produtos_disp_entrada, key='prod2_estoque')
+        with st.container():
+            st.markdown("### Filtros Estoque Diário")
+            col1, col2 = st.columns(2)
+            with col1:
+                produto1_estoque = st.selectbox("Produto 1 (Estoque Diário)", produtos_disp_entrada, key='prod1_estoque')
+                produto2_estoque = st.selectbox("Produto 2 (Estoque Diário)", ['(Nenhum)'] + produtos_disp_entrada, key='prod2_estoque')
+            with col2:
+                # Período igual ao do gráfico anterior
+                pass
         produtos_selecionados_estoque = [produto1_estoque] if produto2_estoque == '(Nenhum)' or produto2_estoque == produto1_estoque else [produto1_estoque, produto2_estoque]
         fig4 = go.Figure()
         for prod in produtos_selecionados_estoque:
