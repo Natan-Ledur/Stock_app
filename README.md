@@ -1,106 +1,33 @@
 
+
 # Stock_app
 
-Este projeto tem como objetivo principal possibilitar a **simulação do estoque** de materiais com base nos cronogramas dos pedidos realizados. Através de dashboards interativos, o usuário pode visualizar, planejar e analisar o impacto dos pedidos no estoque ao longo do tempo, facilitando a tomada de decisão e o planejamento da produção.
+## Visão e Potencial
 
-O sistema foi desenvolvido em Python utilizando o Streamlit, permitindo uma interface web intuitiva e visual.
+O Stock_app nasce como o embrião de uma plataforma de **planejamento e simulação industrial** flexível, colaborativa e integradora. O objetivo é centralizar informações, cenários e decisões em um único ambiente dinâmico, capaz de impactar todas as áreas da empresa: estoque, produção, mão de obra, logística, custos, prazos e muito mais.
 
-## Funcionalidades principais
+### Onde queremos chegar
 
-- Simulação dinâmica do estoque conforme datas de entrega e consumo dos pedidos
-- Visualização de cronogramas (Gráfico de Gantt) para planejamento dos pedidos
-- Filtros por material, cor, setor e pedidos específicos
-- Relatórios e gráficos interativos para análise de consumo, cobertura e evolução do estoque
-- Exportação dos dados para Excel
+- Ser o grande planejador/simulador da empresa, orientando pedidos e decisões estratégicas.
+- Permitir simulações de cenários "E se" (what if), como falta de insumo, picos de demanda, restrições de produção, etc.
+- Integrar com sistemas ERP, CRM, sensores IoT, e outras fontes de dados relevantes.
+- Oferecer interfaces dinâmicas, flexíveis e colaborativas, com dashboards, mapas, timelines e visualizações customizadas.
+- Incorporar tecnologias de IA (LLM) para recomendações, previsões e automação de decisões.
+- Ser multiusuário, colaborativo e SaaS, facilitando o acesso e a participação de diferentes áreas.
+- Evoluir para módulos customizáveis, métricas e KPIs estratégicos, exportações inteligentes e histórico de simulações.
 
-## Como acessar e usar
+### Foco atual
 
-### 1. Executar localmente
-1. Instale o [Python 3.10+](https://www.python.org/downloads/).
-2. Instale o Streamlit:
-	```bash
-	pip install streamlit
-	```
-3. Clone este repositório:
-	```bash
-	git clone https://github.com/Natan-Ledur/Stock_app.git
-	```
-4. Execute o dashboard:
-	```bash
-	streamlit run maindash.py
-	```
-5. Acesse pelo navegador o endereço exibido (geralmente http://localhost:8501).
+No momento, o foco está em atender as necessidades da empresa onde o projeto nasceu, centralizando informações e tornando o planejamento mais dinâmico e flexível. A cada evolução, novas integrações e funcionalidades serão incorporadas, sempre com o objetivo de aumentar a eficiência e o impacto em todas as áreas do negócio.
 
-### 2. Gerar executável para Windows
-Se quiser distribuir para usuários sem Python instalado:
-1. Instale o PyInstaller:
-	```bash
-	pip install pyinstaller
-	```
-2. Gere o executável:
-	```bash
-	pyinstaller --onefile maindash.py
-	```
-3. O arquivo estará na pasta `dist/`.
+### Roadmap e evolução
 
-### 3. Hospedar como aplicativo web
-Você pode publicar o dashboard em plataformas como:
-- [Streamlit Community Cloud](https://streamlit.io/cloud)
-- Heroku
-- AWS, Azure, etc.
+O Stock_app está em constante desenvolvimento. As ideias e funcionalidades descritas acima representam o futuro desejado, e o projeto está aberto para sugestões, testes e novas demandas. A cada ciclo, o objetivo é aproximar o sistema da visão de ser o centro nervoso do planejamento industrial.
 
-Assim, qualquer usuário pode acessar via navegador, sem instalar nada.
+---
 
-## Alternativas de distribuição
-- Compartilhe o link do repositório para que outros possam baixar e rodar localmente.
-- Gere executáveis para facilitar o uso em Windows.
-- Hospede online para acesso universal.
+*Este README não é um manual de uso, mas sim um manifesto de visão e potencial. Se você se identifica com essa proposta ou quer contribuir, acompanhe a evolução do projeto!* 
 
-## Suporte
-Para dúvidas ou sugestões, abra uma issue neste repositório.
-
-## Como acessar e usar
-
-### 1. Executar localmente
-1. Instale o [Python 3.10+](https://www.python.org/downloads/).
-2. Instale o Streamlit:
-	```bash
-	pip install streamlit
-	```
-3. Clone este repositório:
-	```bash
-	git clone https://github.com/Natan-Ledur/Stock_app.git
-	```
-4. Execute o dashboard:
-	```bash
-	streamlit run maindash.py
-	```
-5. Acesse pelo navegador o endereço exibido (geralmente http://localhost:8501).
-
-### 2. Gerar executável para Windows
-Se quiser distribuir para usuários sem Python instalado:
-1. Instale o PyInstaller:
-	```bash
-	pip install pyinstaller
-	```
-2. Gere o executável:
-	```bash
-	pyinstaller --onefile maindash.py
-	```
-3. O arquivo estará na pasta `dist/`.
-
-### 3. Hospedar como aplicativo web
-Você pode publicar o dashboard em plataformas como:
-- [Streamlit Community Cloud](https://streamlit.io/cloud)
-- Heroku
-- AWS, Azure, etc.
-
-Assim, qualquer usuário pode acessar via navegador, sem instalar nada.
-
-## Alternativas de distribuição
-- Compartilhe o link do repositório para que outros possam baixar e rodar localmente.
-- Gere executáveis para facilitar o uso em Windows.
-- Hospede online para acesso universal.
 
 ## Suporte
 Para dúvidas ou sugestões, abra uma issue neste repositório.
