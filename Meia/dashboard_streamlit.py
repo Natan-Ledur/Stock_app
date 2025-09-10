@@ -148,8 +148,14 @@ if resultado_final is not None:
     colunas_meses = [col for col in resultado_final.columns if col not in ['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']]
     mes_selecionado = st.sidebar.selectbox("Mês para Top 10", colunas_meses)
     st.subheader(f"Evolução Mensal do Consumo Médio - {produto_selecionado}")
-    linha = resultado_final[resultado_final['Produto']==produto_selecionado][colunas_meses].T.reset_index()
-    linha.columns = ['Mês','Consumo Médio']
+    dados_produto = resultado_final[resultado_final['Produto']==produto_selecionado][colunas_meses]
+    # Garantir ordenação dos meses
+    meses_ordenados = sorted(colunas_meses, key=lambda x: str(x))
+    dados_produto = dados_produto[meses_ordenados]
+    linha = pd.DataFrame({
+        'Mês': meses_ordenados,
+        'Consumo Médio': dados_produto.values.flatten() if not dados_produto.empty else [0]*len(meses_ordenados)
+    })
     fig = px.line(linha, x='Mês', y='Consumo Médio', title=f'Evolução Mensal - {produto_selecionado}', markers=True)
     st.plotly_chart(fig, use_container_width=True)
     st.subheader(f"Top 10 Produtos - Consumo Médio ({mes_selecionado})")
@@ -241,21 +247,7 @@ if lista_consumo_diario:
                 fig3.add_trace(go.Scatter(x=df_prod['Data'], y=y_trend, mode='lines', name=f'Tendência Linear - {prod}', line=dict(color='magenta', dash='dot')))
     fig3.update_layout(title='Consumo Diário', xaxis_title='Data', yaxis_title='Consumo', template='plotly_dark', height=500)
     st.plotly_chart(fig3, use_container_width=True)
-    # Download CSV
-    if st.button('Download Excel dos dados filtrados'):
-        dfs = []
-        for prod in produtos_selecionados:
-            df_prod = df_consumo_diario[df_consumo_diario['Produto'] == prod].sort_values('Data')
-            df_prod = df_prod.set_index('Data').asfreq('D', fill_value=0).reset_index()
-            mask = (df_prod['Data'] >= periodo[0]) & (df_prod['Data'] <= periodo[1])
-            df_prod = df_prod.loc[mask]
-            dfs.append(df_prod.assign(Produto=prod))
-        df_final = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
-        if not df_final.empty:
-            df_final.to_excel('dados_filtrados_dashboard.xlsx', index=False)
-            st.success('Arquivo "dados_filtrados_dashboard.xlsx" salvo com sucesso!')
-        else:
-            st.warning('Nenhum dado para exportar.')
+    
 
     # NOVO: Gráfico de Estoque Diário
     if df_entrada_diario is not None:
