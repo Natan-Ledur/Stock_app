@@ -8,10 +8,10 @@ import os
 st.set_page_config(page_title="Dashboard Consumo e Estoque", layout="wide")
 st.title("Dashboard de Consumo, Estoque e Cobertura de Produtos")
 
-# Configuração do caminho dos arquivos
-upload_path = 'C:/Users/Fabrica-hoahi/Documents/Projetos_HOAHI_PY/Fios_meias_projeto_so_py/data_base'  # Altere se necessário
+# Configuração do caminho dos arquivos (relativo à raiz do projeto)
+upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data_base')
 if not os.path.exists(upload_path):
-    st.error(f"Pasta '{upload_path}' não encontrada.")
+    st.error(f"Pasta '{upload_path}' não encontrada. Certifique-se de que ela está no repositório do GitHub.")
     st.stop()
 excel_files = [f for f in os.listdir(upload_path) if f.endswith(".xlsx")]
 if not excel_files:
