@@ -3,6 +3,10 @@ import os
 import sys
 from importlib.util import spec_from_file_location, module_from_spec
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 =======
 
 >>>>>>> Stashed changes
@@ -23,6 +27,9 @@ if aba == "Boxer":
 
 if aba == "Boxer":
     st.header("Dashboard Boxer")
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     dashboard_path = "Boxer/dashboard.py"
     spec = spec_from_file_location("dashboard", dashboard_path)
