@@ -1,5 +1,6 @@
 
 # Dashboard usando Streamlit, lendo dados do cache
+
 import streamlit as st
 import pandas as pd
 import os
@@ -9,6 +10,7 @@ import plotly.figure_factory as ff
 import datetime
 import plotly.express as px
 import io
+import sys
 
 
 # Função para carregar dados do main.py e salvar em cache persistente
@@ -210,6 +212,7 @@ with aba2:
         default=pedidos_gantt[:3] if len(pedidos_gantt) > 3 else pedidos_gantt
     )
 
+
     # Usuário define datas de início e fim para cada pedido
     df_gantt = []
     for pedido in pedidos_selecionados:
@@ -219,6 +222,44 @@ with aba2:
         with col2:
             data_fim = st.date_input(f"Data de fim para {pedido}", value=datetime.date.today() + datetime.timedelta(days=2), key=f"fim_{pedido}")
         df_gantt.append(dict(Task=pedido, Start=str(data_inicio), Finish=str(data_fim)))
+
+    # Salva informações preenchidas pelo usuário
+    import json
+    def get_usuario_logado():
+        # Recebe do maindash.py
+        return getattr(sys.modules[__name__], 'usuario_logado', None)
+
+    if st.button('Salvar planejamento do usuário'):
+        usuario = get_usuario_logado() or 'anonimo'
+        registro = {
+            'usuario': usuario,
+            'data': str(datetime.datetime.now()),
+            'pedidos_selecionados': pedidos_selecionados,
+            'df_gantt': df_gantt
+        }
+        # Salva em arquivo local
+        pasta_logs = os.path.join(os.path.dirname(__file__), 'logs_usuarios')
+        os.makedirs(pasta_logs, exist_ok=True)
+        nome_arquivo = f"planejamento_{usuario}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        caminho_arquivo = os.path.join(pasta_logs, nome_arquivo)
+        with open(caminho_arquivo, 'w', encoding='utf-8') as f:
+            json.dump(registro, f, ensure_ascii=False, indent=2)
+        st.success(f"Planejamento salvo para o usuário {usuario}!")
+
+        # Upload automático para S3
+        import boto3
+        from botocore.exceptions import BotoCoreError, ClientError
+        # Configurações do S3 (preencha conforme necessário)
+        BUCKET_NAME = 'SEU_BUCKET_AQUI'  # Substitua pelo nome do seu bucket
+        S3_FOLDER = 'planejamentos'      # Pasta dentro do bucket (opcional)
+        S3_KEY = f"{S3_FOLDER}/{nome_arquivo}" if S3_FOLDER else nome_arquivo
+
+        try:
+            s3 = boto3.client('s3')
+            s3.upload_file(caminho_arquivo, BUCKET_NAME, S3_KEY)
+            st.success(f"Arquivo enviado para o S3: {BUCKET_NAME}/{S3_KEY}")
+        except (BotoCoreError, ClientError) as e:
+            st.error(f"Falha ao enviar para o S3: {e}")
 
     if df_gantt:
         # Lista de cores para o Gantt
