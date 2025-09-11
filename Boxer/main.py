@@ -6,13 +6,20 @@ import pandas as pd
 # from datetime import date
 # import numpy as np #Para Arrays melhores, usei na versão anterior!
 import pickle # Para conversão  objeto Python.
+from dotenv import load_dotenv
+import os
 
-#==============================================================================================
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, message="pandas only supports SQLAlchemy")
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
 def criar_conexao():
-    server = '192.168.1.224'
-    database = '15060P'
-    username = 'consulta'
-    password = '15060Psisplan'
+    server = os.getenv('DB_SERVER')
+    database = os.getenv('DB_DATABASE')
+    username = os.getenv('DB_USERNAME')
+    password = os.getenv('DB_PASSWORD')
     conn_str = (f"DRIVER={{PostgreSQL ODBC Driver(UNICODE)}};SERVER={server};DATABASE={database};UID={username};PWD={password};")
     return pyodbc.connect(conn_str)
 try:

@@ -1,0 +1,14 @@
+# Ignorar arquivos sensíveis e de ambiente
+.env
+Boxer/.env
+# Ignorar arquivos de cache e banco
+__pycache__/
+*.pkl
+# Ignorar arquivos do sistema
+*.log
+*.sqlite3
+# Ignorar arquivos temporários
+*.tmp
+*.bak
+# Ignorar diretórios do VSCode
+.vscode/
