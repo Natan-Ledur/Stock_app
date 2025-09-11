@@ -8,10 +8,10 @@ import os
 st.set_page_config(page_title="Dashboard Consumo e Estoque", layout="wide")
 st.title("Dashboard de Consumo, Estoque e Cobertura de Produtos")
 
-# Configuração do caminho dos arquivos
-upload_path = 'C:/Users/Fabrica-hoahi/Documents/Projetos_HOAHI_PY/Fios_meias_projeto_so_py/data_base'  # Altere se necessário
+# Configuração do caminho dos arquivos (relativo à raiz do projeto)
+upload_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data_base')
 if not os.path.exists(upload_path):
-    st.error(f"Pasta '{upload_path}' não encontrada.")
+    st.error(f"Pasta '{upload_path}' não encontrada. Certifique-se de que ela está no repositório do GitHub.")
     st.stop()
 excel_files = [f for f in os.listdir(upload_path) if f.endswith(".xlsx")]
 if not excel_files:
@@ -141,15 +141,25 @@ if resultado_final is not None and estoque_atual_por_produto:
     resultado_final['Consumo_Medio_Diario'] = resultado_final['Consumo_Medio_Diario'].round(4)
 
 # Dashboard interativo
-st.sidebar.header("Filtros")
 if resultado_final is not None:
     produtos = resultado_final['Produto'].unique().tolist()
-    produto_selecionado = st.sidebar.selectbox("Produto", produtos)
     colunas_meses = [col for col in resultado_final.columns if col not in ['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']]
-    mes_selecionado = st.sidebar.selectbox("Mês para Top 10", colunas_meses)
+    with st.container():
+        st.markdown("### Filtros")
+        col1, col2 = st.columns(2)
+        with col1:
+            produto_selecionado = st.selectbox("Produto", produtos)
+        with col2:
+            mes_selecionado = st.selectbox("Mês para Top 10", colunas_meses)
     st.subheader(f"Evolução Mensal do Consumo Médio - {produto_selecionado}")
-    linha = resultado_final[resultado_final['Produto']==produto_selecionado][colunas_meses].T.reset_index()
-    linha.columns = ['Mês','Consumo Médio']
+    dados_produto = resultado_final[resultado_final['Produto']==produto_selecionado][colunas_meses]
+    # Garantir ordenação dos meses
+    meses_ordenados = sorted(colunas_meses, key=lambda x: str(x))
+    dados_produto = dados_produto[meses_ordenados]
+    linha = pd.DataFrame({
+        'Mês': meses_ordenados,
+        'Consumo Médio': dados_produto.values.flatten() if not dados_produto.empty else [0]*len(meses_ordenados)
+    })
     fig = px.line(linha, x='Mês', y='Consumo Médio', title=f'Evolução Mensal - {produto_selecionado}', markers=True)
     st.plotly_chart(fig, use_container_width=True)
     st.subheader(f"Top 10 Produtos - Consumo Médio ({mes_selecionado})")
@@ -159,6 +169,17 @@ if resultado_final is not None:
     st.plotly_chart(fig2, use_container_width=True)
     st.subheader("Tabela de Cobertura de Estoque")
     st.dataframe(resultado_final[['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']])
+    # Botão de download Excel da tabela de cobertura
+    import io
+    output = io.BytesIO()
+    resultado_final[['Produto','Estoque_Atual','Consumo_Medio_Mensal','Consumo_Medio_Diario','Meses_Cobertura']].to_excel(output, index=False)
+    output.seek(0)
+    st.download_button(
+        label="Download Excel da Tabela de Cobertura",
+        data=output,
+        file_name="tabela_cobertura_estoque.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # Dashboard de consumo diário consolidado
 if lista_consumo_diario:
@@ -186,14 +207,20 @@ if lista_consumo_diario:
         df_entrada_diario = df_entrada_diario.dropna(subset=['Data'])
     st.subheader("Consumo Diário Consolidado - Gráfico Interativo")
     produtos_disp = sorted(df_consumo_diario['Produto'].unique().tolist())
-    produto1 = st.sidebar.selectbox("Produto 1 (Consumo Diário)", produtos_disp, key='prod1')
-    produto2 = st.sidebar.selectbox("Produto 2 (Consumo Diário)", ['(Nenhum)'] + produtos_disp, key='prod2')
     data_min = df_consumo_diario['Data'].min().date()
     data_max = df_consumo_diario['Data'].max().date()
-    periodo = st.sidebar.slider("Período", min_value=data_min, max_value=data_max, value=(data_min, data_max), format="%Y-%m-%d")
-    indicadores = st.sidebar.multiselect("Indicadores", ['Média Móvel 7d', 'Média Móvel 14d', 'Bollinger Bands', 'Média Móvel Personalizada', 'Tendência Linear'], default=['Média Móvel 7d'])
-    mm_custom = st.sidebar.slider("MM Personalizada (dias)", min_value=2, max_value=60, value=21)
-    so_medias = st.sidebar.checkbox("Exibir apenas médias/tendência", value=False)
+    with st.container():
+        st.markdown("### Filtros Consumo Diário")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            produto1 = st.selectbox("Produto 1 (Consumo Diário)", produtos_disp, key='prod1')
+            produto2 = st.selectbox("Produto 2 (Consumo Diário)", ['(Nenhum)'] + produtos_disp, key='prod2')
+        with col2:
+            periodo = st.slider("Período", min_value=data_min, max_value=data_max, value=(data_min, data_max), format="%Y-%m-%d")
+        with col3:
+            indicadores = st.multiselect("Indicadores", ['Média Móvel 7d', 'Média Móvel 14d', 'Bollinger Bands', 'Média Móvel Personalizada', 'Tendência Linear'], default=['Média Móvel 7d'])
+            mm_custom = st.slider("MM Personalizada (dias)", min_value=2, max_value=60, value=21)
+            so_medias = st.checkbox("Exibir apenas médias/tendência", value=False)
     produtos_selecionados = [produto1] if produto2 == '(Nenhum)' or produto2 == produto1 else [produto1, produto2]
     fig3 = go.Figure()
     for prod in produtos_selecionados:
@@ -230,28 +257,21 @@ if lista_consumo_diario:
                 fig3.add_trace(go.Scatter(x=df_prod['Data'], y=y_trend, mode='lines', name=f'Tendência Linear - {prod}', line=dict(color='magenta', dash='dot')))
     fig3.update_layout(title='Consumo Diário', xaxis_title='Data', yaxis_title='Consumo', template='plotly_dark', height=500)
     st.plotly_chart(fig3, use_container_width=True)
-    # Download CSV
-    if st.button('Download CSV dos dados filtrados'):
-        dfs = []
-        for prod in produtos_selecionados:
-            df_prod = df_consumo_diario[df_consumo_diario['Produto'] == prod].sort_values('Data')
-            df_prod = df_prod.set_index('Data').asfreq('D', fill_value=0).reset_index()
-            mask = (df_prod['Data'] >= periodo[0]) & (df_prod['Data'] <= periodo[1])
-            df_prod = df_prod.loc[mask]
-            dfs.append(df_prod.assign(Produto=prod))
-        df_final = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
-        if not df_final.empty:
-            df_final.to_csv('dados_filtrados_dashboard.csv', index=False, sep=';')
-            st.success('Arquivo "dados_filtrados_dashboard.csv" salvo com sucesso!')
-        else:
-            st.warning('Nenhum dado para exportar.')
+    
 
     # NOVO: Gráfico de Estoque Diário
     if df_entrada_diario is not None:
         st.subheader("Estoque Diário Acumulado - Gráfico Interativo")
         produtos_disp_entrada = sorted(list(set(df_entrada_diario['Produto'].unique()) | set(df_consumo_diario['Produto'].unique())))
-        produto1_estoque = st.sidebar.selectbox("Produto 1 (Estoque Diário)", produtos_disp_entrada, key='prod1_estoque')
-        produto2_estoque = st.sidebar.selectbox("Produto 2 (Estoque Diário)", ['(Nenhum)'] + produtos_disp_entrada, key='prod2_estoque')
+        with st.container():
+            st.markdown("### Filtros Estoque Diário")
+            col1, col2 = st.columns(2)
+            with col1:
+                produto1_estoque = st.selectbox("Produto 1 (Estoque Diário)", produtos_disp_entrada, key='prod1_estoque')
+                produto2_estoque = st.selectbox("Produto 2 (Estoque Diário)", ['(Nenhum)'] + produtos_disp_entrada, key='prod2_estoque')
+            with col2:
+                # Período igual ao do gráfico anterior
+                pass
         produtos_selecionados_estoque = [produto1_estoque] if produto2_estoque == '(Nenhum)' or produto2_estoque == produto1_estoque else [produto1_estoque, produto2_estoque]
         fig4 = go.Figure()
         for prod in produtos_selecionados_estoque:

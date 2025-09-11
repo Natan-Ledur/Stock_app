@@ -1,0 +1,6 @@
+streamlit
+pandas
+numpy
+plotly
+openpyxl
+# Adicione aqui outras dependências necessárias para  dashboards
