@@ -5,13 +5,15 @@ import streamlit as st
 import pandas as pd
 import os
 import pickle
-import subprocess
+import subprocess  # Usado apenas para atualizar o cache
 import plotly.figure_factory as ff
 import datetime
 import plotly.express as px
 import io
 import sys
-
+# import json  # Usado apenas em bloco específico
+# import boto3  # Usado apenas em bloco específico
+# from botocore.exceptions import BotoCoreError, ClientError  # Usado apenas em bloco específico
 
 # Função para carregar dados do main.py e salvar em cache persistente
 import pickle

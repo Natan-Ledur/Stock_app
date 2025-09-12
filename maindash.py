@@ -2,11 +2,10 @@ import streamlit as st
 import os
 import sys
 from importlib.util import spec_from_file_location, module_from_spec
-from pymongo import MongoClient
-import hashlib
-from dotenv import load_dotenv
+#import hashlib
+#from dotenv import load_dotenv
+#import os
 
-import os
 st.set_page_config(page_title="Dashboard Principal", layout="wide")
 st.sidebar.title("Menu de Dashboards")
 

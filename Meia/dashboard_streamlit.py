@@ -1,9 +1,11 @@
+# ...existing code...
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+# import io  # Usado apenas para download Excel
 
 st.set_page_config(page_title="Dashboard Consumo e Estoque", layout="wide")
 st.title("Dashboard de Consumo, Estoque e Cobertura de Produtos")
