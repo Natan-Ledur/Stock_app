@@ -1,5 +1,6 @@
 import os
 import platform
+import socket
 import sys
 from datetime import datetime
 from urllib.parse import parse_qsl, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
@@ -97,6 +98,61 @@ def _escape_credential(value: str) -> str:
         return value
 
 
+def _extract_host_port(uri: str):
+    try:
+        parts = urlsplit(uri)
+        netloc = parts.netloc.rsplit('@', 1)[-1]
+        if netloc.startswith('['):
+            end = netloc.find(']')
+            if end == -1:
+                return None, None
+            host = netloc[1:end]
+            rest = netloc[end + 1:]
+            port = int(rest[1:]) if rest.startswith(':') else 27017
+            return host, port
+        if ':' in netloc:
+            host, port_text = netloc.rsplit(':', 1)
+            return host, int(port_text)
+        return netloc, 27017
+    except Exception:
+        return None, None
+
+
+def _is_local_host(host: str) -> bool:
+    if not host:
+        return False
+    h = host.lower()
+    return h in ('localhost', '127.0.0.1', '::1')
+
+
+def _is_host_port_open(host: str, port: int, timeout_s: float = 0.2) -> bool:
+    if not host or not port:
+        return False
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout_s):
+            return True
+    except Exception:
+        return False
+
+
+def _order_candidates_by_reachability(local_candidates, vm_candidates):
+    """Ordena local-first quando local está acessível; evita insistir em localhost fechado."""
+    local_reachable = []
+    local_unreachable = []
+    for uri in _dedupe(local_candidates):
+        host, port = _extract_host_port(uri)
+        if _is_local_host(host):
+            if _is_host_port_open(host, port):
+                local_reachable.append(uri)
+            else:
+                local_unreachable.append(uri)
+        else:
+            local_reachable.append(uri)
+
+    # Se localhost estiver fechado, tenta VM antes de voltar nas URIs locais indisponíveis.
+    return _dedupe(local_reachable + vm_candidates + local_unreachable)
+
+
 def _build_uri_candidates():
     db_name = os.getenv('MONGO_DB', 'stock_app')
     user = os.getenv('MONGO_USER', os.getenv('MONGO_INITDB_ROOT_USERNAME', 'user'))
@@ -143,7 +199,7 @@ def _build_uri_candidates():
     if mongo_uri and not _is_local_uri(mongo_uri):
         vm_candidates.append(mongo_uri)
 
-    base_candidates = _dedupe(local_candidates + vm_candidates)
+    base_candidates = _order_candidates_by_reachability(local_candidates, _dedupe(vm_candidates))
 
     expanded = []
     for uri in base_candidates:
