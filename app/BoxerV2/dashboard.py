@@ -36,8 +36,19 @@ except ImportError as e:
 # Configuração de Ambiente e Conexão
 # ==============================================================================
 @st.cache_resource(ttl=60)
-def get_mongo_connection():
+def _cached_mongo_connection():
     return get_database()
+
+
+def get_mongo_connection():
+    db = _cached_mongo_connection()
+    if db is not None:
+        return db
+    try:
+        _cached_mongo_connection.clear()
+    except Exception:
+        pass
+    return _cached_mongo_connection()
 
 # ==============================================================================
 # Helpers de Atualização e Persistência (Inspirado no basedashboard)

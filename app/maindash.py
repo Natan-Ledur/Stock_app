@@ -351,25 +351,25 @@ else:
     if aba == "Boxer":
         st.header("Boxer")
         dashboard_path = os.path.join(os.path.dirname(__file__), "Boxer", "dashboard.py")
-        spec = spec_from_file_location("dashboard", dashboard_path)
+        spec = spec_from_file_location("dashboard_boxer", dashboard_path)
         dashboard = module_from_spec(spec)
-        sys.modules["dashboard"] = dashboard
+        sys.modules["dashboard_boxer"] = dashboard
         spec.loader.exec_module(dashboard)
 
     elif aba == "Meias":
         st.header("Meias")
         dashboard_meia_path = os.path.join(os.path.dirname(__file__), "Meia", "dashboard_streamlit.py")
-        spec = spec_from_file_location("dashboard_streamlit", dashboard_meia_path)
+        spec = spec_from_file_location("dashboard_meias", dashboard_meia_path)
         dashboard_meia = module_from_spec(spec)
-        sys.modules["dashboard_streamlit"] = dashboard_meia
+        sys.modules["dashboard_meias"] = dashboard_meia
         spec.loader.exec_module(dashboard_meia)
         
     elif aba == "Boxer_V2":
         st.header("Boxer V2")
         dashboard_v2_path = os.path.join(os.path.dirname(__file__), "BoxerV2", "dashboard.py")
-        spec = spec_from_file_location("dashboard_streamlit", dashboard_v2_path)
+        spec = spec_from_file_location("dashboard_boxerv2", dashboard_v2_path)
         dashboard_v2 = module_from_spec(spec)
-        sys.modules["dashboard_streamlit"] = dashboard_v2
+        sys.modules["dashboard_boxerv2"] = dashboard_v2
         spec.loader.exec_module(dashboard_v2)
 
     # Upload / Salvar dados removed: frontend artifact upload was deprecated

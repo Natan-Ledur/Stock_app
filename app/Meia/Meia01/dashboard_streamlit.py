@@ -36,12 +36,22 @@ except Exception:
     mongo_utils = importlib.import_module('mongo_utils')
     get_database = mongo_utils.get_database
 
-db = get_database()
+
+def _resolve_database_with_retry():
+    db_candidate = get_database()
+    if db_candidate is None:
+        db_candidate = get_database()
+    return db_candidate
+
+db = _resolve_database_with_retry()
 if db is None:
     st.warning("Aviso: não foi possível conectar ao MongoDB (tentativas local e VM). Verifique as variáveis MONGO_* no .env.")
 
 
 def ler_df_mongo(nome_colecao):
+    global db
+    if db is None:
+        db = _resolve_database_with_retry()
     if db is None:
         try:
             st.warning(f"Banco de dados MongoDB não disponível; não é possível ler {nome_colecao}.")
