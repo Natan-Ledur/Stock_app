@@ -1,6 +1,6 @@
 # Bibliotecas necesarias
 import os
-import platform
+import sys
 import datetime
 import pandas as pd
 import logging
@@ -9,8 +9,6 @@ from datetime import datetime, date
 
 # Configuração de Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-from pymongo import MongoClient
-from pymongo.errors import ServerSelectionTimeoutError
 import psycopg2
 from contextlib import contextmanager
 
@@ -39,76 +37,34 @@ if find_dotenv:
         if load_dotenv:
             load_dotenv()
 
+
+try:
+    app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    from mongo_utils import get_mongo_client
+except Exception:
+    get_mongo_client = None
+
 #============================================================================================================================
 ## conexão com o MongoDB
 
-def _is_local_uri(uri: str) -> bool:
-    if not uri:
-        return False
-    uri_lower = uri.lower()
-    return "localhost" in uri_lower or "127.0.0.1" in uri_lower
-
-
-def _dedupe_uris(uris):
-    seen = set()
-    ordered = []
-    for uri in uris:
-        if uri and uri not in seen:
-            seen.add(uri)
-            ordered.append(uri)
-    return ordered
-
 
 def _get_mongo_client_and_db():
-    """Estabelece conexão com o MongoDB: tenta local primeiro e depois VM."""
+    """Estabelece conexão com o MongoDB usando o utilitário central local-first."""
+    if get_mongo_client is None:
+        logging.warning("Não foi possível importar mongo_utils.get_mongo_client.")
+        return None, None
+
     mongo_db = os.environ.get("MONGO_DB", "mydb")
-    mongo_uri = os.environ.get("MONGO_URI")
-    mongo_uri_vm = os.environ.get("MONGO_URI_VM") or os.environ.get("MONGO_URI_REMOTE")
-    mongo_uri_local = os.environ.get("MONGO_URI_LOCAL")
-    user = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
-    pw = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
-    local_host = os.environ.get("MONGO_LOCAL_HOST", "localhost")
-    local_port = os.environ.get("MONGO_LOCAL_PORT", "27017")
-    is_windows = platform.system() == 'Windows'
-
-    local_candidates = []
-    if mongo_uri_local:
-        local_candidates.append(mongo_uri_local)
-    compass_uri = os.environ.get('MONGO_URI_COMPASS')
-    if compass_uri:
-        local_candidates.append(compass_uri)
-    if mongo_uri and _is_local_uri(mongo_uri):
-        local_candidates.append(mongo_uri)
-    local_candidates.append(f"mongodb://{user}:{pw}@{local_host}:{local_port}/")
-    if is_windows:
-        local_candidates.append(f"mongodb://{user}:{pw}@{local_host}:27018/")
-        if mongo_uri and 'mongodb2:27017' in mongo_uri:
-            local_candidates.append(mongo_uri.replace('mongodb2:27017', 'localhost:27018'))
-
-    vm_candidates = []
-    if mongo_uri_vm:
-        vm_candidates.append(mongo_uri_vm)
-    if mongo_uri and not _is_local_uri(mongo_uri):
-        vm_candidates.append(mongo_uri)
-    vm_host = os.environ.get("MONGO_HOST")
-    if vm_host and vm_host.lower() not in ("localhost", "127.0.0.1"):
-        vm_candidates.append(f"mongodb://{user}:{pw}@{vm_host}:27017/")
-
-    uri_candidates = _dedupe_uris(local_candidates + vm_candidates)
-    last_error = None
-    last_uri = None
-    for uri in uri_candidates:
-        try:
-            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
-            client.admin.command('ping')
-            return client, client[mongo_db]
-        except (ServerSelectionTimeoutError, Exception) as e:
-            last_error = e
-            last_uri = uri
-
-    if last_error:
-        logging.warning(f"Erro ao conectar no MongoDB ({last_uri}): {last_error}")
-    return None, None
+    try:
+        client = get_mongo_client(server_timeout_ms=5000)
+        if client is None:
+            return None, None
+        return client, client[mongo_db]
+    except Exception as e:
+        logging.warning(f"Erro ao conectar no MongoDB: {e}")
+        return None, None
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Normaliza nomes de colunas: minúsculo, sem espaços e sem acentos básicos."""

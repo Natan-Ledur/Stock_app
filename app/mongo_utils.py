@@ -2,7 +2,7 @@ import os
 import platform
 import sys
 from datetime import datetime
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
 import pandas as pd
 
 try:
@@ -87,6 +87,16 @@ def _auth_source_variants(uri: str, db_name: str):
     return _dedupe(candidates)
 
 
+def _escape_credential(value: str) -> str:
+    if value is None:
+        return value
+    try:
+        # Normaliza tanto valor cru quanto já percent-encoded.
+        return quote_plus(unquote_plus(value))
+    except Exception:
+        return value
+
+
 def _build_uri_candidates():
     db_name = os.getenv('MONGO_DB', 'stock_app')
     user = os.getenv('MONGO_USER', os.getenv('MONGO_INITDB_ROOT_USERNAME', 'user'))
@@ -100,6 +110,8 @@ def _build_uri_candidates():
 
     local_host = os.getenv('MONGO_LOCAL_HOST', 'localhost')
     local_port = os.getenv('MONGO_LOCAL_PORT', '27017')
+    user_esc = _escape_credential(user)
+    password_esc = _escape_credential(password)
 
     local_candidates = []
     vm_candidates = []
@@ -111,16 +123,16 @@ def _build_uri_candidates():
     if mongo_uri and _is_local_uri(mongo_uri):
         local_candidates.append(mongo_uri)
 
-    if user and password:
-        local_candidates.append(f'mongodb://{user}:{password}@{local_host}:{local_port}/{db_name}')
+    if user_esc and password_esc:
+        local_candidates.append(f'mongodb://{user_esc}:{password_esc}@{local_host}:{local_port}/{db_name}')
         if platform.system().lower().startswith('windows'):
-            local_candidates.append(f'mongodb://{user}:{password}@{local_host}:27018/{db_name}')
+            local_candidates.append(f'mongodb://{user_esc}:{password_esc}@{local_host}:27018/{db_name}')
 
     if mongo_uri and 'mongodb2:27017' in mongo_uri:
         local_candidates.append(mongo_uri.replace('mongodb2:27017', 'localhost:27018'))
 
-    if mongo_host and user and password:
-        host_uri = f'mongodb://{user}:{password}@{mongo_host}:27017/{db_name}'
+    if mongo_host and user_esc and password_esc:
+        host_uri = f'mongodb://{user_esc}:{password_esc}@{mongo_host}:27017/{db_name}'
         if mongo_host.lower() in ('localhost', '127.0.0.1', 'mongodb2'):
             local_candidates.append(host_uri)
         else:

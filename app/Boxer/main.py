@@ -3,7 +3,6 @@ import sys
 import importlib
 import io
 import datetime
-import platform
 import numpy as np
 import pandas as pd
 import warnings
@@ -41,48 +40,31 @@ if find_dotenv:
             load_dotenv()
 
 
-# ---------------- Mongo helpers (similar ao Boxer) ----------------
 try:
-    from pymongo import MongoClient
+    app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    from mongo_utils import get_mongo_client
 except Exception:
-    MongoClient = None
+    get_mongo_client = None
 
 
+# ---------------- Mongo helpers (similar ao Boxer) ----------------
 def _get_mongo_client_and_db():
-    if MongoClient is None:
+    if get_mongo_client is None:
+        print("WARNING: Não foi possível importar mongo_utils.get_mongo_client.")
         return None, None
 
-    MONGO_URI = os.environ.get("MONGO_URI")
     MONGO_DB = os.environ.get("MONGO_DB", "mydb")
 
-    # Preferência por Compass/localhost no Windows
     try:
-        if platform.system().lower().startswith('windows'):
-            compass = os.environ.get('MONGO_URI_COMPASS')
-            if compass:
-                MONGO_URI = compass
-    except Exception:
-        pass
-
-    if not MONGO_URI:
-        MONGO_USER = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
-        MONGO_PASS = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
-        MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
-        MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/"
-
-    try:
-        if platform.system().lower().startswith('windows') and 'mongodb2:27017' in MONGO_URI:
-            MONGO_URI = MONGO_URI.replace('mongodb2:27017', 'localhost:27018')
-    except Exception:
-        pass
-
-    try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        client.admin.command('ping')
+        client = get_mongo_client(server_timeout_ms=5000)
+        if client is None:
+            return None, None
         db = client[MONGO_DB]
         return client, db
     except Exception as e:
-        print(f"WARNING: Não foi possível conectar ao MongoDB em '{MONGO_URI}': {e}")
+        print(f"WARNING: Não foi possível conectar ao MongoDB: {e}")
         return None, None
 
 
