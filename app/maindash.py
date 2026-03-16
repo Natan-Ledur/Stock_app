@@ -12,8 +12,19 @@ except Exception:
     stx = None  # será verificado em runtime
 
 API_BASE = os.getenv("API_BASE", "http://192.168.1.205:8001/api")  # definido no docker-compose
+API_TIMEOUT = float(os.getenv("API_TIMEOUT_SECONDS", "5"))
 
 st.set_page_config(page_title="Principal", layout="wide")
+
+
+def _api_request(method: str, path: str, **kwargs):
+    """Faz chamada HTTP para o backend com timeout padrão e captura erros de rede."""
+    url = f"{API_BASE}{path}" if path.startswith("/") else f"{API_BASE}/{path}"
+    timeout = kwargs.pop("timeout", API_TIMEOUT)
+    try:
+        return requests.request(method, url, timeout=timeout, **kwargs), None
+    except requests.exceptions.RequestException as e:
+        return None, str(e)
 
 
 def maybe_rerun():
@@ -210,7 +221,12 @@ if "token" not in st.session_state:
 else:
     # Verifica se o token ainda é válido
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    resp = requests.get(f"{API_BASE}/me/", headers=headers)
+    resp, req_err = _api_request("GET", "/me/", headers=headers)
+    if req_err:
+        st.error(f"Não foi possível conectar ao backend em {API_BASE}.")
+        st.caption(f"Detalhe: {req_err}")
+        st.stop()
+
     if resp.status_code != 200:
         # try refresh token if available
         refresh_token = st.session_state.get('refresh')
@@ -218,7 +234,10 @@ else:
             try:
                 # lightweight log for container stdout: attempt refresh (no token printed)
                 print('[maindash] tentando refresh de token...')
-                r = requests.post(f"{API_BASE}/token/refresh/", json={"refresh": refresh_token}, timeout=5)
+                r, refresh_err = _api_request("POST", "/token/refresh/", json={"refresh": refresh_token})
+                if refresh_err:
+                    st.warning(f"Backend indisponível para renovar sessão: {refresh_err}")
+                    st.stop()
                 print(f"[maindash] token/refresh returned status: {r.status_code}")
                 if r.status_code == 200:
                     new_access = r.json().get('access')
@@ -226,7 +245,10 @@ else:
                         st.session_state.token = new_access
                         # re-check /me/ with new token
                         headers = {"Authorization": f"Bearer {st.session_state.token}"}
-                        resp = requests.get(f"{API_BASE}/me/", headers=headers)
+                        resp, req_err = _api_request("GET", "/me/", headers=headers)
+                        if req_err:
+                            st.warning(f"Backend indisponível após refresh: {req_err}")
+                            st.stop()
                 else:
                     # refresh failed - clear session
                     st.warning("Sessão expirada. Faça login novamente.")
@@ -242,6 +264,12 @@ else:
             st.warning("Sessão expirada. Faça login novamente.")
             st.session_state.clear()
             st.experimental_rerun()
+
+    if resp is None or resp.status_code != 200:
+        st.warning("Não foi possível validar a sessão no backend. Faça login novamente.")
+        st.session_state.clear()
+        maybe_rerun()
+        st.stop()
 
     # ============================================================
     # Menu
@@ -348,9 +376,11 @@ else:
 
     elif aba == "Logs do Sistema":
         st.header("Logs do Sistema")
-        resp = requests.get(f"{API_BASE}/logs/", headers=headers)
-        if resp.status_code == 200:
-            logs = resp.json()
+        resp_logs, req_err = _api_request("GET", "/logs/", headers=headers)
+        if req_err:
+            st.error(f"Falha ao conectar ao backend: {req_err}")
+        elif resp_logs.status_code == 200:
+            logs = resp_logs.json()
             # map action keys to human-friendly Portuguese labels
             action_map = {
                 'login_success': 'login (sucesso)',
@@ -371,8 +401,10 @@ else:
 
     elif aba == "Aprovações":
         st.header("Aprovar Usuários")
-        resp_pending = requests.get(f"{API_BASE}/register/pending/", headers=headers)
-        if resp_pending.status_code == 200:
+        resp_pending, req_err = _api_request("GET", "/register/pending/", headers=headers)
+        if req_err:
+            st.error(f"Falha ao conectar ao backend: {req_err}")
+        elif resp_pending.status_code == 200:
             pendentes = resp_pending.json()
             if not pendentes:
                 st.info("Nenhum usuário pendente.")
@@ -381,15 +413,19 @@ else:
                     st.write(f"Email: {u.get('email','-')}")
                     col1, col2 = st.columns(2)
                     if col1.button("Aprovar", key=f"ap_{u['id']}"):
-                        r = requests.post(f"{API_BASE}/register/approve/{u['id']}/", headers=headers)
-                        if r.status_code == 200:
+                        r, action_err = _api_request("POST", f"/register/approve/{u['id']}/", headers=headers)
+                        if action_err:
+                            st.error(f"Falha ao aprovar: {action_err}")
+                        elif r.status_code == 200:
                             st.success("Usuário aprovado")
                             st.experimental_rerun()
                         else:
                             st.error("Erro ao aprovar")
                     if col2.button("Rejeitar", key=f"rj_{u['id']}"):
-                        r = requests.post(f"{API_BASE}/register/reject/{u['id']}/", headers=headers)
-                        if r.status_code == 200:
+                        r, action_err = _api_request("POST", f"/register/reject/{u['id']}/", headers=headers)
+                        if action_err:
+                            st.error(f"Falha ao rejeitar: {action_err}")
+                        elif r.status_code == 200:
                             st.success("Usuário rejeitado")
                             st.experimental_rerun()
                         else:

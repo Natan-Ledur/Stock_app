@@ -12,6 +12,7 @@ __pycache__/
 *.bak
 # Ignorar diretórios do VSCode
 .vscode/
+.venv/
 app/_pycache__/
 app/Boxer/_pycache__/
 app/Boxer/Boxer01/_pycache__/

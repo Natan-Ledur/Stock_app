@@ -1,0 +1,17 @@
+[server]
+headless = true
+# Port and address are provided by the start script, but we set sensible defaults
+port = 8887
+address = "0.0.0.0"
+
+[browser]
+# Disable usage telemetry prompt
+gatherUsageStats = false
+
+[theme]
+base="dark"
+primaryColor="#e71d1d"
+backgroundColor="#0D1117"
+secondaryBackgroundColor="#161B22"
+textColor="#E6EDF3"
+font="sans serif"

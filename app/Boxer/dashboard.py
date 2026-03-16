@@ -30,11 +30,15 @@ except Exception:
     format_utils = importlib.import_module('format_utils')
     format_dataframe_brazilian = format_utils.format_dataframe_brazilian
 # Função para buscar DataFrames direto do MongoDB
-from pymongo import MongoClient
-from dotenv import load_dotenv, find_dotenv
-import platform
+try:
+    from mongo_utils import get_database
+except Exception:
+    app_dir = os.path.dirname(os.path.dirname(__file__))
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    mongo_utils = importlib.import_module('mongo_utils')
+    get_database = mongo_utils.get_database
 
-st.set_page_config(page_title="Dashboard Fios Boxer", layout="wide")
 st.title("Dados Boxer")
 
 #=============================================================================================
@@ -53,55 +57,9 @@ if 'to_super' not in globals():
         return txt.lower().translate(SUPERSCRIPT_MAP)
 
 #========================load env e conecta ao MongoDB========================================#
-# Tenta localizar o .env mais próximo; se não encontrado, usa fallback para frontend/.env
-dotenv_path = find_dotenv()
-if not dotenv_path:
-    # fallback para ../../.env relativo a frontend/app/Boxer -> frontend/.env
-    fallback = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
-    if os.path.exists(fallback):
-        dotenv_path = fallback
-if dotenv_path:
-    load_dotenv(dotenv_path)
-else:
-    # última alternativa: deixar load_dotenv procurar no cwd
-    load_dotenv()
-
-# Prioriza uso da variável MONGO_URI
-MONGO_URI = os.environ.get("MONGO_URI")
-MONGO_DB = os.environ.get("MONGO_DB", "mydb")
-# Se estiver rodando no Windows local e existir MONGO_URI_COMPASS, prefira essa URI
-if platform.system().lower().startswith('windows'):
-    compass = os.environ.get('MONGO_URI_COMPASS')
-    if compass:
-        MONGO_URI = compass
-
-if not MONGO_URI:
-    MONGO_USER = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
-    MONGO_PASS = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
-    MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
-    MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/"
-
-# Se a URI ainda referencia o host do container (mongodb2) e estamos no Windows,
-# substituímos para `localhost:27018` como fallback (útil para Mongo Compass / portas mapeadas localmente).
-try:
-    if platform.system().lower().startswith('windows') and MONGO_URI and 'mongodb2:27017' in MONGO_URI:
-        MONGO_URI = MONGO_URI.replace('mongodb2:27017', 'localhost:27018')
-except Exception:
-    pass
-
-# Tenta criar cliente com timeout curto e ping; se falhar, não quebra o app UI
-client = None
-db = None
-try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    # força seleção do servidor
-    client.admin.command('ping')
-    db = client[MONGO_DB]
-except Exception as e:
-    # Não levantamos a exceção; apenas avisamos no Streamlit e mantemos db=None
-    st.warning(f"Aviso: não foi possível conectar ao MongoDB em '{MONGO_URI}': {e}")
-    client = None
-    db = None
+db = get_database()
+if db is None:
+    st.warning("Aviso: não foi possível conectar ao MongoDB (tentativas local e VM). Verifique as variáveis MONGO_* no .env.")
 #==============================================================================================#
 def ler_df_mongo(nome_colecao):
     if db is None:

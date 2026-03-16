@@ -35,7 +35,7 @@ except ImportError as e:
 # ==============================================================================
 # Configuração de Ambiente e Conexão
 # ==============================================================================
-@st.cache_resource
+@st.cache_resource(ttl=60)
 def get_mongo_connection():
     return get_database()
 

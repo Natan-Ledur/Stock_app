@@ -262,41 +262,86 @@ if dotenv_path:
 else:
     load_dotenv()
 # Prioriza uso da variável MONGO_URI
-MONGO_URI = os.environ.get("MONGO_URI")
 MONGO_DB = os.environ.get("MONGO_DB", "mydb")
-if not MONGO_URI:
-    MONGO_USER = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
-    MONGO_PASS = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
-    MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
-    MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/"
-# Adjust MONGO_URI when running locally on Windows: inside Docker the host
-# `mongodb2:27017` is valid, but when running the script on Windows the name
-# won't resolve. Prefer `MONGO_URI_COMPASS` if provided, otherwise replace
-# the container hostname with localhost:27018 when on Windows.
 import platform
-try:
-    if platform.system().lower().startswith('windows'):
-        # prefer explicit COMPASS uri if present
-        compass = os.environ.get('MONGO_URI_COMPASS')
-        if compass:
-            MONGO_URI = compass
-        else:
-            # naive replacement if the env still contains mongodb2
-            if 'mongodb2:27017' in MONGO_URI:
-                MONGO_URI = MONGO_URI.replace('mongodb2:27017', 'localhost:27018')
 
-    # Create client with a short serverSelectionTimeoutMS to fail fast locally
-    try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        # force server selection now
-        client.admin.command('ping')
-        db = client[MONGO_DB]
-    except Exception as e:
+
+def _is_local_uri(uri: str) -> bool:
+    if not uri:
+        return False
+    uri_lower = uri.lower()
+    return "localhost" in uri_lower or "127.0.0.1" in uri_lower
+
+
+def _dedupe_uris(uris):
+    seen = set()
+    ordered = []
+    for uri in uris:
+        if uri and uri not in seen:
+            seen.add(uri)
+            ordered.append(uri)
+    return ordered
+
+
+def _build_mongo_uri_candidates():
+    mongo_uri = os.environ.get("MONGO_URI")
+    mongo_uri_vm = os.environ.get("MONGO_URI_VM") or os.environ.get("MONGO_URI_REMOTE")
+    mongo_uri_local = os.environ.get("MONGO_URI_LOCAL")
+    mongo_user = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
+    mongo_pass = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
+    local_host = os.environ.get("MONGO_LOCAL_HOST", "localhost")
+    local_port = os.environ.get("MONGO_LOCAL_PORT", "27017")
+
+    local_candidates = []
+    if mongo_uri_local:
+        local_candidates.append(mongo_uri_local)
+    compass = os.environ.get('MONGO_URI_COMPASS')
+    if compass:
+        local_candidates.append(compass)
+    if mongo_uri and _is_local_uri(mongo_uri):
+        local_candidates.append(mongo_uri)
+    local_candidates.append(f"mongodb://{mongo_user}:{mongo_pass}@{local_host}:{local_port}/")
+
+    if platform.system().lower().startswith('windows'):
+        local_candidates.append(f"mongodb://{mongo_user}:{mongo_pass}@{local_host}:27018/")
+        if mongo_uri and 'mongodb2:27017' in mongo_uri:
+            local_candidates.append(mongo_uri.replace('mongodb2:27017', 'localhost:27018'))
+
+    vm_candidates = []
+    if mongo_uri_vm:
+        vm_candidates.append(mongo_uri_vm)
+    if mongo_uri and not _is_local_uri(mongo_uri):
+        vm_candidates.append(mongo_uri)
+    vm_host = os.environ.get("MONGO_HOST")
+    if vm_host and vm_host.lower() not in ("localhost", "127.0.0.1"):
+        vm_candidates.append(f"mongodb://{mongo_user}:{mongo_pass}@{vm_host}:27017/")
+
+    return _dedupe_uris(local_candidates + vm_candidates)
+
+
+try:
+    uri_candidates = _build_mongo_uri_candidates()
+    client = None
+    db = None
+    last_error = None
+    last_uri = None
+    for uri in uri_candidates:
+        try:
+            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            client.admin.command('ping')
+            db = client[MONGO_DB]
+            last_error = None
+            break
+        except Exception as e:
+            last_error = e
+            last_uri = uri
+            client = None
+            db = None
+
+    if client is None and last_error:
         # If Mongo is not reachable, warn and set client/db to None so the
         # rest of the script can continue without raising an exception.
-        print(f"WARNING: Não foi possível conectar ao MongoDB em '{MONGO_URI}': {e}")
-        client = None
-        db = None
+        print(f"WARNING: Não foi possível conectar ao MongoDB em '{last_uri}': {last_error}")
 except Exception as e:
     print(f"WARNING: erro ao configurar MongoDB URI: {e}")
     client = None

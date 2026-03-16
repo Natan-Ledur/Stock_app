@@ -24,52 +24,21 @@ except Exception:
     format_utils = importlib.import_module('format_utils')
     format_dataframe_brazilian = format_utils.format_dataframe_brazilian
 
-st.set_page_config(page_title="Dashboard Consumo e Estoque", layout="wide")
 st.title("Consumo, Estoque e Cobertura de Produtos - Meia")
 
-# ==================== Conexão com Mongo (padrão Boxer) ====================
-from pymongo import MongoClient
-from dotenv import load_dotenv, find_dotenv
-import platform
-
-# load env
-dotenv_path = find_dotenv()
-if not dotenv_path:
-    fallback = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
-    if os.path.exists(fallback):
-        dotenv_path = fallback
-if dotenv_path:
-    load_dotenv(dotenv_path)
-else:
-    load_dotenv()
-
-MONGO_URI = os.environ.get("MONGO_URI")
-MONGO_DB = os.environ.get("MONGO_DB", "mydb")
-if platform.system().lower().startswith('windows'):
-    compass = os.environ.get('MONGO_URI_COMPASS')
-    if compass:
-        MONGO_URI = compass
-if not MONGO_URI:
-    MONGO_USER = os.environ.get("MONGO_USER", os.getenv("MONGO_INITDB_ROOT_USERNAME", "user"))
-    MONGO_PASS = os.environ.get("MONGO_PASS", os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password"))
-    MONGO_HOST = os.environ.get("MONGO_HOST", "localhost")
-    MONGO_URI = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/"
+# ==================== Conexão com Mongo (padrão unificado) ====================
 try:
-    if platform.system().lower().startswith('windows') and 'mongodb2:27017' in MONGO_URI:
-        MONGO_URI = MONGO_URI.replace('mongodb2:27017', 'localhost:27018')
+    from mongo_utils import get_database
 except Exception:
-    pass
+    app_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    if app_root not in sys.path:
+        sys.path.insert(0, app_root)
+    mongo_utils = importlib.import_module('mongo_utils')
+    get_database = mongo_utils.get_database
 
-client = None
-db = None
-try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    client.admin.command('ping')
-    db = client[MONGO_DB]
-except Exception as e:
-    st.warning(f"Aviso: não foi possível conectar ao MongoDB em '{MONGO_URI}': {e}")
-    client = None
-    db = None
+db = get_database()
+if db is None:
+    st.warning("Aviso: não foi possível conectar ao MongoDB (tentativas local e VM). Verifique as variáveis MONGO_* no .env.")
 
 
 def ler_df_mongo(nome_colecao):

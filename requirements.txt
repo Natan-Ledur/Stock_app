@@ -10,3 +10,6 @@ XlsxWriter
 Django
 PyJWT==2.8.0
 extra-streamlit-components==0.1.71
+requests
+matplotlib
+psycopg2-binary
