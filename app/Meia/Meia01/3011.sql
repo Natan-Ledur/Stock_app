@@ -30,9 +30,9 @@ left join (
 ) OF1 on (FACCAO.NUMERO = OF1.NUMERO)
 where
     (FACCAO.QT_ORIG - (FACCAO.QUANT + FACCAO.QUANT_2 + FACCAO.QUANT_I + FACCAO.QUANT_F + coalesce(FACCAO.QTDE_EXPURGA, 0))) > 0
-    and (FACCAO.OP in ('01','18','19'))
+    and (FACCAO.OP in ('01','11','14','10','13'))
     and (PRODUTO.ETIQUETA in ('02'))
-    and PRODUTO.GRUPO IN ('022', '016')
+    and PRODUTO.GRUPO IN ('004')
 group by
     PRODUTO.GRUPO,
     FACCAO.OP,

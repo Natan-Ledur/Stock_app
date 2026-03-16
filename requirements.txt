@@ -1,6 +1,12 @@
-streamlit
+streamlit==1.36.0
+pymongo
+python-dotenv
+plotly
 pandas
 numpy
-plotly
+pyodbc
 openpyxl
-# Adicione aqui outras dependências necessárias para  dashboards
+XlsxWriter
+Django
+PyJWT==2.8.0
+extra-streamlit-components==0.1.71
