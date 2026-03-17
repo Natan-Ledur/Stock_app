@@ -182,10 +182,10 @@ def _build_uri_candidates():
     if user_esc and password_esc:
         local_candidates.append(f'mongodb://{user_esc}:{password_esc}@{local_host}:{local_port}/{db_name}')
         if platform.system().lower().startswith('windows'):
-            local_candidates.append(f'mongodb://{user_esc}:{password_esc}@{local_host}:27018/{db_name}')
+            local_candidates.append(f'mongodb://{user_esc}:{password_esc}@{local_host}:27017/{db_name}')
 
     if mongo_uri and 'mongodb2:27017' in mongo_uri:
-        local_candidates.append(mongo_uri.replace('mongodb2:27017', 'localhost:27018'))
+        local_candidates.append(mongo_uri.replace('mongodb2:27017', 'localhost:27017'))
 
     if mongo_host and user_esc and password_esc:
         host_uri = f'mongodb://{user_esc}:{password_esc}@{mongo_host}:27017/{db_name}'
