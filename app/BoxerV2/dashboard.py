@@ -38,10 +38,11 @@ except ImportError as e:
 # ==============================================================================
 @st.cache_resource(ttl=60)
 def _cached_mongo_connection():
-    return get_mongo_client_with_retry(max_retries=3)
+    return get_mongo_client_with_retry(max_retries=3, server_timeout_ms=5000)
 
 
 def get_mongo_connection():
+    """Tenta obter conexão MongoDB, com fallback para reconectar se o cache falhar."""
     client = _cached_mongo_connection()
     if client is not None:
         try:
@@ -52,6 +53,16 @@ def get_mongo_connection():
                 _cached_mongo_connection.clear()
             except Exception:
                 pass
+
+    # Se o cache falhou, tenta reconectar diretamente (sem cache)
+    client = get_mongo_client_with_retry(max_retries=3, server_timeout_ms=5000)
+    if client is not None:
+        try:
+            client.admin.command('ping')
+            return client[os.getenv('MONGO_DB', 'stock_app')]
+        except Exception:
+            pass
+
     return None
 
 # ==============================================================================

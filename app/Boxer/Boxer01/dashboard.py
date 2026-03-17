@@ -40,10 +40,26 @@ except Exception:
 
 
 def _resolve_database_with_retry():
-    client = get_mongo_client_with_retry(max_retries=3)
-    if client is None:
-        return None
-    return client[os.getenv('MONGO_DB', 'stock_app')]
+    """Tenta conectar ao MongoDB com retry e fallback."""
+    # Primeira tentativa com retry robusto
+    client = get_mongo_client_with_retry(max_retries=3, server_timeout_ms=5000)
+    if client is not None:
+        try:
+            client.admin.command('ping')
+            return client[os.getenv('MONGO_DB', 'stock_app')]
+        except Exception:
+            pass
+
+    # Segunda tentativa direta como fallback
+    client = get_mongo_client_with_retry(max_retries=2, server_timeout_ms=5000)
+    if client is not None:
+        try:
+            client.admin.command('ping')
+            return client[os.getenv('MONGO_DB', 'stock_app')]
+        except Exception:
+            pass
+
+    return None
 
 st.title("Dados Boxer")
 
