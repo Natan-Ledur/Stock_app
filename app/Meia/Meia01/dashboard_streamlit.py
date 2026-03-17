@@ -28,20 +28,21 @@ st.title("Consumo, Estoque e Cobertura de Produtos - Meia")
 
 # ==================== Conexão com Mongo (padrão unificado) ====================
 try:
-    from mongo_utils import get_database
+    from mongo_utils import get_database, get_mongo_client_with_retry
 except Exception:
     app_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     if app_root not in sys.path:
         sys.path.insert(0, app_root)
     mongo_utils = importlib.import_module('mongo_utils')
     get_database = mongo_utils.get_database
+    get_mongo_client_with_retry = getattr(mongo_utils, 'get_mongo_client_with_retry', lambda **kw: None)
 
 
 def _resolve_database_with_retry():
-    db_candidate = get_database()
-    if db_candidate is None:
-        db_candidate = get_database()
-    return db_candidate
+    client = get_mongo_client_with_retry(max_retries=3)
+    if client is None:
+        return None
+    return client[os.getenv('MONGO_DB', 'stock_app')]
 
 db = _resolve_database_with_retry()
 if db is None:

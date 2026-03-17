@@ -29,20 +29,21 @@ except Exception:
     format_dataframe_brazilian = format_utils.format_dataframe_brazilian
 # Função para buscar DataFrames direto do MongoDB
 try:
-    from mongo_utils import get_database
+    from mongo_utils import get_database, get_mongo_client_with_retry
 except Exception:
     app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     if app_dir not in sys.path:
         sys.path.insert(0, app_dir)
     mongo_utils = importlib.import_module('mongo_utils')
     get_database = mongo_utils.get_database
+    get_mongo_client_with_retry = getattr(mongo_utils, 'get_mongo_client_with_retry', lambda **kw: None)
 
 
 def _resolve_database_with_retry():
-    db_candidate = get_database()
-    if db_candidate is None:
-        db_candidate = get_database()
-    return db_candidate
+    client = get_mongo_client_with_retry(max_retries=3)
+    if client is None:
+        return None
+    return client[os.getenv('MONGO_DB', 'stock_app')]
 
 st.title("Dados Boxer")
 

@@ -17,10 +17,11 @@ if app_dir not in sys.path:
     sys.path.insert(0, app_dir)
 
 try:
-    from mongo_utils import get_database
+    from mongo_utils import get_database, get_mongo_client_with_retry
 except ImportError as e:
     st.error(f"Erro ao importar mongo_utils: {e}")
     def get_database(db_name=None): return None
+    def get_mongo_client_with_retry(*args, **kwargs): return None
 
 try:
     import format_utils
@@ -37,18 +38,21 @@ except ImportError as e:
 # ==============================================================================
 @st.cache_resource(ttl=60)
 def _cached_mongo_connection():
-    return get_database()
+    return get_mongo_client_with_retry(max_retries=3)
 
 
 def get_mongo_connection():
-    db = _cached_mongo_connection()
-    if db is not None:
-        return db
-    try:
-        _cached_mongo_connection.clear()
-    except Exception:
-        pass
-    return _cached_mongo_connection()
+    client = _cached_mongo_connection()
+    if client is not None:
+        try:
+            client.admin.command('ping')
+            return client[os.getenv('MONGO_DB', 'stock_app')]
+        except Exception:
+            try:
+                _cached_mongo_connection.clear()
+            except Exception:
+                pass
+    return None
 
 # ==============================================================================
 # Helpers de Atualização e Persistência (Inspirado no basedashboard)

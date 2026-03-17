@@ -236,6 +236,27 @@ def get_mongo_client(server_timeout_ms=3000):
         print(f"Erro ao conectar ao Mongo ({last_uri}): {last_error}")
     return None
 
+def get_mongo_client_with_retry(server_timeout_ms=3000, max_retries=3):
+    """Retorna cliente MongoDB com retry exponencial.
+
+    Útil para Streamlit onde o cache pode ser inicializado
+    enquanto o servidor está iniciando.
+    """
+    import time
+    for attempt in range(max_retries):
+        try:
+            client = get_mongo_client(server_timeout_ms=server_timeout_ms)
+            if client is not None:
+                return client
+        except Exception:
+            pass
+
+        if attempt < max_retries - 1:
+            wait_time = 0.5 * (2 ** attempt)  # 0.5s, 1s, 2s
+            time.sleep(wait_time)
+
+    return None
+
 def get_database(db_name=None):
     """Retorna conexão com o database padrão configurado."""
     client = get_mongo_client()
